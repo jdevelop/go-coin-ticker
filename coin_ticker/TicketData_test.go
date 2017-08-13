@@ -1,9 +1,9 @@
 package coin_ticker
 
 import (
-	"testing"
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 var dataCoin = `{ "id": "ethereum",

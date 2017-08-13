@@ -1,8 +1,8 @@
 package coin_ticker
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestEtherFetch(t *testing.T) {

@@ -22,16 +22,17 @@ func (d *Driver) TickerUpdate(tickers []string) {
 			fmt.Println(err)
 			continue
 		}
-		last, historyExists := d.history[ticker.Id]
-		d.history[ticker.Id] = history{price: ticker.PriceUSD, timestamp: ticker.LastUpdated}
+		last, historyExists := d.history[ticker.Symbol]
+		d.history[ticker.Symbol] = history{price: ticker.PriceUSD, timestamp: ticker.LastUpdated}
 		if last.price != ticker.PriceUSD && last.timestamp < ticker.LastUpdated {
+			d.display.Render(i, "                ")
 			d.display.Render(i, fmt.Sprintf("%1s: $%2.2f", ticker.Symbol, ticker.PriceUSD))
-			signal, ok := d.signal[ticker.Id]
+			signal, ok := d.signal[ticker.Symbol]
 			if ok && historyExists {
 				if last.price < ticker.PriceUSD {
-					signal.priceUp(ticker.PriceUSD)
+					signal.PriceUp(last.price, ticker.PriceUSD)
 				} else {
-					signal.priceDown(ticker.PriceUSD)
+					signal.PriceDown(last.price, ticker.PriceUSD)
 				}
 			}
 		}

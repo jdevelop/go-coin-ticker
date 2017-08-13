@@ -1,10 +1,10 @@
 package coin_ticker
 
 type TickerData struct {
-	Id               string `json:"id"`
-	Name             string `json:"name"`
-	Symbol           string `json:"symbol"`
-	Rank             int8 `json:"rank,string"`
+	Id               string  `json:"id"`
+	Name             string  `json:"name"`
+	Symbol           string  `json:"symbol"`
+	Rank             int8    `json:"rank,string"`
 	PriceUSD         float64 `json:"price_usd,string"`
 	PriceBTC         float64 `json:"price_btc,string"`
 	Volume24H        float64 `json:"24h_volume_usd,string"`
@@ -14,5 +14,5 @@ type TickerData struct {
 	PercentChange1H  float32 `json:"percent_change_1h,string"`
 	PercentChange24H float32 `json:"percent_change_24h,string"`
 	PercentChange7D  float32 `json:"percent_change_7d,string"`
-	LastUpdated      int32 `json:"last_updated,string"`
+	LastUpdated      int32   `json:"last_updated,string"`
 }

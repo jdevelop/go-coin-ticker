@@ -7,6 +7,7 @@ import (
 
 type Display interface {
 	Render(line int, text string)
+	Clear()
 }
 
 type console struct{}
@@ -26,6 +27,10 @@ type LCD struct {
 func (lcd *LCD) Render(line int, text string) {
 	lcd.lcdRef.SetCursor(uint8(line), 0)
 	lcd.lcdRef.Print(text)
+}
+
+func (lcd *LCD) Clear() {
+	lcd.lcdRef.Cls()
 }
 
 func MakeLCDDisplay(data []int, rs int, e int) (Display, error) {
