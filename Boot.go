@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/jdevelop/go-coin-ticker/coin_ticker"
-	"github.com/jdevelop/go-coin-ticker/coin_ticker/api"
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
+	"flag"
 )
 
 type Config struct {
@@ -32,6 +32,10 @@ type Config struct {
 }
 
 func main() {
+
+	portfolio := flag.Bool("portfolio", true, "")
+
+	flag.Parse()
 
 	var display coin_ticker.Display
 	signals := make(map[string]coin_ticker.PriceSignal)
@@ -86,20 +90,22 @@ func main() {
 
 	market := coin_ticker.MakeCoinMarket()
 
+	db, err := coin_ticker.MakeDB(conf.Ticker.DB.Path)
+
 	driver := coin_ticker.MakeDriver(
 		market,
 		display,
 		signals,
+		db,
 	)
 
 	if conf.Ticker.REST.Host != "" {
-		db, err := api.MakeDB(conf.Ticker.DB.Path)
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		r := api.MakeREST(db, market)
+		r := coin_ticker.MakeREST(db, market)
 		go func() {
 			addr := fmt.Sprintf("%s:%d", conf.Ticker.REST.Host, conf.Ticker.REST.Port)
 			fmt.Printf("Starting REST at %s\n", addr)
@@ -107,12 +113,19 @@ func main() {
 		}()
 	}
 
-	driver.TickerUpdate(conf.Ticker.Symbols)
+	var upd func()
+
+	if *portfolio {
+		upd = func() { driver.PortfolioUpdate() }
+	} else {
+		upd = func() { driver.TickerUpdate(conf.Ticker.Symbols) }
+	}
 	ticker := time.Tick(10 * time.Second)
+	upd()
 
 	fmt.Printf("Starting ticker on %v\n", conf.Ticker.Symbols)
 
 	for range ticker {
-		driver.TickerUpdate(conf.Ticker.Symbols)
+		upd()
 	}
 }

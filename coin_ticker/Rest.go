@@ -1,9 +1,8 @@
-package api
+package coin_ticker
 
 import (
 	"github.com/julienschmidt/httprouter"
 	"net/http"
-	"github.com/jdevelop/go-coin-ticker/coin_ticker"
 	"github.com/mgutz/logxi/v1"
 	"encoding/json"
 	"io/ioutil"
@@ -29,7 +28,7 @@ func jsonCT(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
-func MakeREST(db RecordsDAO, m coin_ticker.TickersPipeline) (r *httprouter.Router) {
+func MakeREST(db RecordsDAO, m TickersPipeline) (r *httprouter.Router) {
 	r = httprouter.New()
 
 	r.GET("/dashboard", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

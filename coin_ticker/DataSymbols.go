@@ -1,12 +1,12 @@
-package api
+package coin_ticker
 
 import (
 	"database/sql"
 	"time"
 
+	"github.com/mgutz/logxi/v1"
 	_ "github.com/mattn/go-sqlite3"
 	"os"
-	"github.com/mgutz/logxi/v1"
 )
 
 type Record struct {
@@ -20,7 +20,7 @@ type Record struct {
 type RecordsDAO interface {
 	AddRecord(r *Record) error
 	GetRecords() ([]Record, error)
-	RemoveRecord(ids ...int) (error)
+	RemoveRecord(ids ...int) error
 	AggregateRecords() ([]Record, error)
 	Init() error
 }
@@ -145,6 +145,7 @@ func MakeDB(path string) (db RecordsDAO, err error) {
 	init := os.IsNotExist(err1)
 	_db, err := sql.Open("sqlite3", path)
 	if err != nil {
+		log.Error("Can't open SQLite3 driver", err)
 		return
 	}
 

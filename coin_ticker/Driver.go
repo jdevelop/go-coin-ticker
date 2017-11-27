@@ -1,6 +1,8 @@
 package coin_ticker
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type history struct {
 	price     float64
@@ -10,6 +12,7 @@ type history struct {
 type Driver struct {
 	tickers TickersPipeline
 	display Display
+	db      RecordsDAO
 	signal  map[string]PriceSignal
 
 	history map[string]history
@@ -39,12 +42,43 @@ func (d *Driver) TickerUpdate(tickers []string) {
 	}
 }
 
-func MakeDriver(tickers TickersPipeline, display Display, signals map[string]PriceSignal) *Driver {
-	dr := Driver{
+func (d *Driver) PortfolioUpdate() {
+
+	recs, err := d.db.AggregateRecords()
+	if err != nil {
+		d.display.Clear()
+		d.display.Render(0, "ERROR")
+		return
+	}
+
+	total := 0.0
+	gain := 0.0
+
+	for _, rec := range recs {
+		sym, err := d.tickers.FetchCoins(rec.Symbol)
+		if err != nil {
+			continue
+		}
+		total = total + rec.Amount*sym.PriceUSD
+		gain = gain + rec.Amount*sym.PriceUSD - rec.Price
+	}
+
+	d.display.Clear()
+	d.display.Render(0, fmt.Sprintf("Value: $%.3f", total))
+	d.display.Render(1, fmt.Sprintf("Gain: $%+.3f", gain))
+}
+
+func MakeDriver(
+	tickers TickersPipeline,
+	display Display,
+	signals map[string]PriceSignal,
+	db RecordsDAO,
+) *Driver {
+	return &Driver{
 		signal:  signals,
 		history: make(map[string]history),
 		display: display,
 		tickers: tickers,
+		db:      db,
 	}
-	return &dr
 }
