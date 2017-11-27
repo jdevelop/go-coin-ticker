@@ -1,13 +1,35 @@
 package main
 
 import (
-	"github.com/jdevelop/go-coin-ticker/coin_ticker"
-	"github.com/spf13/viper"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
-	"fmt"
+
+	"github.com/jdevelop/go-coin-ticker/coin_ticker"
+	"github.com/jdevelop/go-coin-ticker/coin_ticker/api"
+	"github.com/spf13/viper"
+	"log"
+	"net/http"
 )
+
+type Config struct {
+	Ticker struct {
+		LCD struct {
+			DataPins []int `mapstructure:"data-pins"`
+			RsPin    int   `mapstructure:"rs-pin"`
+			EPin     int   `mapstructure:"e-pin"`
+		} `mapstructure:"lcd"`
+		DB struct {
+			Path string `mapstructure:"path"`
+		} `mapstructure:"db"`
+		Symbols []string `mapstructure:"symbols"`
+		REST struct {
+			Host string `mapstructure:"host"`
+			Port int    `mapstructure:"port"`
+		} `mapstructure:"rest"`
+	} `mapstructure:"coin-ticker"`
+}
 
 func main() {
 
@@ -17,18 +39,15 @@ func main() {
 	viper.SetConfigName("config")              // name of config file (without extension)
 	viper.AddConfigPath("$HOME/.coins_ticker") // call multiple times to add many search paths
 	err := viper.ReadInConfig()                // Find and read the config file
-	if err != nil || viper.GetString("coin-ticker.lcd.data-pins") == "" {
+	conf := Config{}
+	err = viper.Unmarshal(&conf)
+	if err != nil || len(conf.Ticker.LCD.DataPins) == 0 {
 		display = coin_ticker.MakeConsoleDisplay()
 	} else {
-		dataPinsStr := strings.Split(viper.GetString("coin-ticker.lcd.data-pins"), ",")
-		dataPins := make([]int, len(dataPinsStr))
-		for i, v := range dataPinsStr {
-			dataPins[i], _ = strconv.Atoi(v)
-		}
 		display, err = coin_ticker.MakeLCDDisplay(
-			dataPins,
-			viper.GetInt("coin-ticker.lcd.rs-pin"),
-			viper.GetInt("coin-ticker.lcd.e-pin"),
+			conf.Ticker.LCD.DataPins,
+			conf.Ticker.LCD.RsPin,
+			conf.Ticker.LCD.EPin,
 		)
 		asInt := func(s interface{}) int {
 			switch s.(type) {
@@ -65,17 +84,35 @@ func main() {
 
 	}
 
+	market := coin_ticker.MakeCoinMarket()
+
 	driver := coin_ticker.MakeDriver(
-		coin_ticker.MakeCoinMarket(),
+		market,
 		display,
 		signals,
 	)
 
-	tickers := []string{"ethereum", "bitcoin"}
+	if conf.Ticker.REST.Host != "" {
+		db, err := api.MakeDB(conf.Ticker.DB.Path)
 
-	driver.TickerUpdate(tickers)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		r := api.MakeREST(db, market)
+		go func() {
+			addr := fmt.Sprintf("%s:%d", conf.Ticker.REST.Host, conf.Ticker.REST.Port)
+			fmt.Printf("Starting REST at %s\n", addr)
+			http.ListenAndServe(addr, r)
+		}()
+	}
+
+	driver.TickerUpdate(conf.Ticker.Symbols)
 	ticker := time.Tick(10 * time.Second)
+
+	fmt.Printf("Starting ticker on %v\n", conf.Ticker.Symbols)
+
 	for range ticker {
-		driver.TickerUpdate(tickers)
+		driver.TickerUpdate(conf.Ticker.Symbols)
 	}
 }
