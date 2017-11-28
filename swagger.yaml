@@ -2,7 +2,7 @@ swagger: '2.0'
 info:
   description: The dashboard API for the coin management
   version: 1.0.0
-  title: Coins Ticket
+  title: Coins Ticker
   termsOfService: 'http://swagger.io/terms/'
   license:
     name: Apache 2.0

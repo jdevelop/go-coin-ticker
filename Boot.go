@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"flag"
+	"sync"
 )
 
 type Config struct {
@@ -34,6 +35,7 @@ type Config struct {
 func main() {
 
 	portfolio := flag.Bool("portfolio", true, "")
+	noTicker := flag.Bool("noticker", false, "")
 
 	flag.Parse()
 
@@ -120,12 +122,18 @@ func main() {
 	} else {
 		upd = func() { driver.TickerUpdate(conf.Ticker.Symbols) }
 	}
-	ticker := time.Tick(10 * time.Second)
-	upd()
-
-	fmt.Printf("Starting ticker on %v\n", conf.Ticker.Symbols)
-
-	for range ticker {
+	if !*noTicker {
+		ticker := time.Tick(10 * time.Second)
 		upd()
+
+		fmt.Printf("Starting ticker on %v\n", conf.Ticker.Symbols)
+
+		for range ticker {
+			upd()
+		}
+	} else {
+		var wg sync.WaitGroup
+		wg.Add(1)
+		wg.Wait()
 	}
 }

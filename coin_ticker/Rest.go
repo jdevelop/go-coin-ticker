@@ -57,15 +57,20 @@ func MakeREST(db RecordsDAO, m TickersPipeline) (r *httprouter.Router) {
 			})
 		}
 
+		gain := 0.0
+		if spent != 0 {
+			gain = total * 100 / spent
+		}
 		data, err := json.Marshal(&Dashboard{
 			TotalReturn: total,
 			TotalSpent:  spent,
-			GainLoss:    total / spent * 100,
+			GainLoss:    gain,
 			Symbols:     recs,
 		})
 
 		if err != nil {
 			http.Error(w, "Unknown format", 500)
+			log.Error("Can't serialize JSON", err)
 			return
 		}
 		jsonCT(w)
