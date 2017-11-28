@@ -1,0 +1,131 @@
+swagger: '2.0'
+info:
+  description: The dashboard API for the coin management
+  version: 1.0.0
+  title: Coins Ticket
+  termsOfService: 'http://swagger.io/terms/'
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+host: coins.jdevelop.com
+basePath: /
+schemes:
+  - http
+paths:
+  /dashboard:
+    get:
+      summary: Get the dashboard
+      description: ''
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/Dashboard'
+        '400':
+          description: Invalid input
+  /list:
+    get:
+      summary: Retrieves the list of the purchased stuff
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/Results'
+  /buy:
+    put:
+      summary: Add the new record
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/RawSymbol'
+      consumes:
+        - application/json
+      produces:
+        - text/plain
+      responses:
+        '200':
+          description: OK
+definitions:
+  Results:
+    type: array
+    items:
+      type: object
+      $ref: '#/definitions/Symbol'
+  Dashboard:
+    type: object
+    properties:
+      total_return:
+        type: number
+        format: double
+        example: 1000000
+      total_spent:
+        type: number
+        format: double
+        example: 1000
+      gain_loss:
+        type: number
+        format: double
+        example: 999900
+      symbols:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/Symbol'
+    xml:
+      name: Order
+  Symbol:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+        example: 101
+      symbol:
+        type: string
+        example: ethereum
+      amount:
+        type: number
+        format: double
+        example: 0.1
+      price:
+        type: number
+        format: double
+        example: 427.11
+      date:
+        type: string
+        format: date
+        example: '2017-11-29 00:00'
+      market_price:
+        type: number
+        format: double
+        example: 512
+      return:
+        type: number
+        format: double
+        example: 51.2
+      value:
+        type: number
+        format: double
+        example: 8.19
+  RawSymbol:
+    type: object
+    properties:
+      symbol:
+        type: string
+        example: bitcoin
+      amount:
+        type: number
+        format: double
+        example: 1.79
+      price:
+        type: number
+        format: double
+        example: 9417.12
+      date:
+        type: string
+        format: date
+        example: '2017-11-29 00:00'
