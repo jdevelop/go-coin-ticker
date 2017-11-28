@@ -16,6 +16,7 @@ import (
 
 type Config struct {
 	Ticker struct {
+		Interval time.Duration `mapstructure:"tick"`
 		LCD struct {
 			DataPins []int `mapstructure:"data-pins"`
 			RsPin    int   `mapstructure:"rs-pin"`
@@ -122,11 +123,16 @@ func main() {
 	} else {
 		upd = func() { driver.TickerUpdate(conf.Ticker.Symbols) }
 	}
+
+	if conf.Ticker.Interval == 0 {
+		conf.Ticker.Interval = 10 * time.Second
+	}
+
 	if !*noTicker {
-		ticker := time.Tick(10 * time.Second)
+		ticker := time.Tick(conf.Ticker.Interval)
 		upd()
 
-		fmt.Printf("Starting ticker on %v\n", conf.Ticker.Symbols)
+		fmt.Printf("Starting ticker on %v : %v\n", conf.Ticker.Symbols, conf.Ticker.Interval)
 
 		for range ticker {
 			upd()
