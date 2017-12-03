@@ -1,4 +1,4 @@
-package coin_ticker
+package cointicker
 
 import (
 	"fmt"
@@ -53,6 +53,7 @@ func (d *Driver) PortfolioUpdate() {
 
 	total := 0.0
 	gain := 0.0
+	price := 0.0
 
 	for _, rec := range recs {
 		sym, err := d.tickers.FetchCoins(rec.Symbol)
@@ -61,11 +62,12 @@ func (d *Driver) PortfolioUpdate() {
 		}
 		total = total + rec.Amount*sym.PriceUSD
 		gain = gain + rec.Amount*sym.PriceUSD - rec.Price
+		price = price + rec.Price
 	}
 
 	d.display.Clear()
-	d.display.Render(0, fmt.Sprintf("Value: $%.3f", total))
-	d.display.Render(1, fmt.Sprintf("Gain: $%+.3f", gain))
+	d.display.Render(0, fmt.Sprintf("$%-7.2f/$%-7.2f", total, price))
+	d.display.Render(1, fmt.Sprintf("$%+-7.2f:$%-+7.1f%%", gain, gain*100/price))
 }
 
 func MakeDriver(

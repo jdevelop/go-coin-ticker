@@ -6,18 +6,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jdevelop/go-coin-ticker/coin_ticker"
-	"github.com/spf13/viper"
+	"flag"
 	"log"
 	"net/http"
-	"flag"
 	"sync"
+
+	"github.com/jdevelop/go-coin-ticker/cointicker"
+	"github.com/spf13/viper"
 )
 
 type Config struct {
 	Ticker struct {
 		Interval time.Duration `mapstructure:"tick"`
-		LCD struct {
+		LCD      struct {
 			DataPins []int `mapstructure:"data-pins"`
 			RsPin    int   `mapstructure:"rs-pin"`
 			EPin     int   `mapstructure:"e-pin"`
@@ -26,7 +27,7 @@ type Config struct {
 			Path string `mapstructure:"path"`
 		} `mapstructure:"db"`
 		Symbols []string `mapstructure:"symbols"`
-		REST struct {
+		REST    struct {
 			Host string `mapstructure:"host"`
 			Port int    `mapstructure:"port"`
 		} `mapstructure:"rest"`
@@ -40,8 +41,8 @@ func main() {
 
 	flag.Parse()
 
-	var display coin_ticker.Display
-	signals := make(map[string]coin_ticker.PriceSignal)
+	var display cointicker.Display
+	signals := make(map[string]cointicker.PriceSignal)
 
 	viper.SetConfigName("config")              // name of config file (without extension)
 	viper.AddConfigPath("$HOME/.coins_ticker") // call multiple times to add many search paths
@@ -49,9 +50,9 @@ func main() {
 	conf := Config{}
 	err = viper.Unmarshal(&conf)
 	if err != nil || len(conf.Ticker.LCD.DataPins) == 0 {
-		display = coin_ticker.MakeConsoleDisplay()
+		display = cointicker.MakeConsoleDisplay()
 	} else {
-		display, err = coin_ticker.MakeLCDDisplay(
+		display, err = cointicker.MakeLCDDisplay(
 			conf.Ticker.LCD.DataPins,
 			conf.Ticker.LCD.RsPin,
 			conf.Ticker.LCD.EPin,
@@ -69,7 +70,7 @@ func main() {
 		}
 		for coins, v := range viper.GetStringMap("coin-ticker.pins") {
 			coinData := v.(map[string]interface{})
-			signals[strings.ToUpper(coins)] = coin_ticker.MakeLED(asInt(coinData["pin-up"]), asInt(coinData["pin-down"]))
+			signals[strings.ToUpper(coins)] = cointicker.MakeLED(asInt(coinData["pin-up"]), asInt(coinData["pin-down"]))
 		}
 
 		display.Render(0, "  COINS  ")
@@ -91,11 +92,11 @@ func main() {
 
 	}
 
-	market := coin_ticker.MakeCoinMarket()
+	market := cointicker.MakeCoinMarket()
 
-	db, err := coin_ticker.MakeDB(conf.Ticker.DB.Path)
+	db, err := cointicker.MakeDB(conf.Ticker.DB.Path)
 
-	driver := coin_ticker.MakeDriver(
+	driver := cointicker.MakeDriver(
 		market,
 		display,
 		signals,
@@ -108,7 +109,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		r := coin_ticker.MakeREST(db, market)
+		r := cointicker.MakeREST(db, market)
 		go func() {
 			addr := fmt.Sprintf("%s:%d", conf.Ticker.REST.Host, conf.Ticker.REST.Port)
 			fmt.Printf("Starting REST at %s\n", addr)

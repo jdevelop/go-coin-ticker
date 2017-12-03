@@ -1,7 +1,7 @@
-* ##plate: left to right, LED up: 0 to 14
-* ##raspberry pi: 0 to 39
+* ## plate: left to right, LED up: 0 to 14
+* ## raspberry pi: 0 to 39
 
-|Raspberry Pi   | LED Head   |
+|Raspberry Pi   | LCD Head   |
 |:-------------:|:----------:|
 | 1             |  1         | 
 | 3             | 13         |

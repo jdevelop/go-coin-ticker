@@ -1,4 +1,4 @@
-package coin_ticker
+package cointicker
 
 type TickerData struct {
 	Id               string  `json:"id"`
