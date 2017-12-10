@@ -1,20 +1,23 @@
 package cointicker
 
 import (
-	"github.com/julienschmidt/httprouter"
-	"net/http"
-	"github.com/mgutz/logxi/v1"
 	"encoding/json"
 	"io/ioutil"
-	"time"
+	"math"
+	"net/http"
 	"strconv"
+	"strings"
+	"time"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/mgutz/logxi/v1"
 )
 
 type PricedRecord struct {
-	Record
-	MarketPrice float64 `json:"market_price"`
-	Return      float64 `json:"return"`
-	Value       float64 `json:"value"`
+	Symbol      Unit    `json:"symbol,omitempty"`
+	MarketPrice float64 `json:"market_price,omitempty"`
+	Qty         float64 `json:"qty,omitempty"`
+	Value       float64 `json:"value,omitempty"`
 }
 
 type Dashboard struct {
@@ -42,24 +45,29 @@ func MakeREST(db RecordsDAO, m TickersPipeline) (r *httprouter.Router) {
 		total := 0.0
 		spent := 0.0
 		for _, rec := range res {
-			sym, err := m.FetchCoins(rec.Symbol)
+			if strings.ToLower(rec.Account) == "usd" {
+				spent = spent + rec.Amount
+				continue
+			}
+			sym, err := m.FetchCoins(rec.Account)
 			if err != nil {
 				log.Error("Can't process coin", err)
 				continue
 			}
-			total = total + sym.PriceUSD*rec.Amount - rec.Price
-			spent = spent + rec.Price
+			total = total + sym.PriceUSD*rec.Amount
 			recs = append(recs, PricedRecord{
-				Record:      rec,
+				Symbol:      rec.Account,
+				Qty:         rec.Amount,
 				MarketPrice: sym.PriceUSD,
 				Value:       sym.PriceUSD * rec.Amount,
-				Return:      sym.PriceUSD*rec.Amount - rec.Price,
 			})
 		}
 
+		spent = math.Abs(spent)
+
 		gain := 0.0
 		if spent != 0 {
-			gain = total * 100 / spent
+			gain = (total - spent) * 100 / spent
 		}
 		data, err := json.Marshal(&Dashboard{
 			TotalReturn: total,

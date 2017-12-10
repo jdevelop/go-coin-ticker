@@ -25,6 +25,12 @@
             "args": [
                 "go test . -v"
             ]
+        },
+        {
+            "taskName": "Docker build",
+            "args": [
+                "docker build ."
+            ]
         }
     ]
 }

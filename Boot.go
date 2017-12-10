@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config defines the configuration file structure.
 type Config struct {
 	Ticker struct {
 		Interval time.Duration `mapstructure:"tick"`
@@ -133,7 +134,7 @@ func main() {
 		ticker := time.Tick(conf.Ticker.Interval)
 		upd()
 
-		fmt.Printf("Starting ticker on %v : %v\n", conf.Ticker.Symbols, conf.Ticker.Interval)
+		fmt.Println("Starting ticker")
 
 		for range ticker {
 			upd()

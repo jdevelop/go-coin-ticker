@@ -1,4 +1,6 @@
-FROM dockcross/linux-x86:latest
+#FROM dockcross/linux-x86:latest
+FROM dockcross/linux-armv6
+#FROM dockcross/linux-armv7
 
 # Largely copied from the official Golang image Dockerfile
 

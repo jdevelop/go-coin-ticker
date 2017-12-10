@@ -2,18 +2,27 @@ package cointicker
 
 import (
 	"database/sql"
+	"os"
 	"time"
 
-	"github.com/mgutz/logxi/v1"
+	// SQLIte 3
 	_ "github.com/mattn/go-sqlite3"
-	"os"
+	"github.com/mgutz/logxi/v1"
 )
 
+//Unit type of the transaction
+type Unit = string
+
+type Sale struct {
+	Account Unit    `json:"account,omitempty"`
+	Amount  float64 `json:"amount,omitempty"`
+}
+
+//Record data
 type Record struct {
-	Id     int       `json:"id"`
-	Symbol string    `json:"symbol,omitempty"`
-	Amount float64   `json:"amount,omitempty"`
-	Price  float64   `json:"price,omitempty"`
+	ID     int       `json:"id,omitempty"`
+	Debit  Sale      `json:"debit,omitempty"`
+	Credit Sale      `json:"credit,omitempty"`
 	Date   time.Time `json:"date,omitempty"`
 }
 
@@ -21,7 +30,7 @@ type RecordsDAO interface {
 	AddRecord(r *Record) error
 	GetRecords() ([]Record, error)
 	RemoveRecord(ids ...int) error
-	AggregateRecords() ([]Record, error)
+	AggregateRecords() ([]Sale, error)
 	Init() error
 }
 
@@ -44,11 +53,12 @@ func (db *localDB) RemoveRecord(ids ...int) (err error) {
 }
 
 func (db *localDB) AddRecord(r *Record) (err error) {
-	stmt, err := db.db.Prepare("INSERT INTO TRANSACTIONS (SYMBOL, AMOUNT, PRICE, TXNDATE) VALUES (?,?,?,?)")
+	stmt, err := db.db.Prepare("INSERT INTO TRANSACTIONS (DEBIT_SYM, DEBIT_AMT, CREDIT_SYM, CREDIT_AMT, TXNDATE) " +
+		"VALUES (?,?,?,?,?)")
 	if err != nil {
 		return
 	}
-	res, err := stmt.Exec(r.Symbol, r.Amount, r.Price, r.Date)
+	res, err := stmt.Exec(r.Debit.Account, r.Debit.Amount, r.Credit.Account, r.Credit.Amount, r.Date)
 	if err != nil {
 		return
 	}
@@ -57,7 +67,8 @@ func (db *localDB) AddRecord(r *Record) (err error) {
 }
 
 func (db *localDB) GetRecords() (res []Record, err error) {
-	stmt, err := db.db.Prepare("SELECT ID, SYMBOL,AMOUNT,PRICE,TXNDATE FROM TRANSACTIONS ORDER BY TXNDATE DESC LIMIT 10 ")
+	stmt, err := db.db.Prepare("SELECT ID, DEBIT_SYM, DEBIT_AMT, CREDIT_SYM, CREDIT_AMT, TXNDATE " +
+		"FROM TRANSACTIONS ORDER BY TXNDATE DESC LIMIT 10 ")
 	if err != nil {
 		return
 	}
@@ -67,58 +78,84 @@ func (db *localDB) GetRecords() (res []Record, err error) {
 	}
 
 	var (
-		id            int
-		sym           string
-		amount, price float64
-		txndate       time.Time
+		id                  int
+		debitSym, creditSym Unit
+		debitAmt, creditAmt float64
+		txndate             time.Time
 	)
 
 	res = make([]Record, 0)
 
 	for rows.Next() {
-		err = rows.Scan(&id, &sym, &amount, &price, &txndate)
+		err = rows.Scan(&id, &debitSym, &debitAmt, &creditSym, &creditAmt, &txndate)
 		if err != nil {
 			continue
 		}
 		res = append(res, Record{
-			Id:     id,
-			Symbol: sym,
-			Amount: amount,
-			Price:  price,
-			Date:   txndate,
+			ID: id,
+			Debit: Sale{
+				Account: debitSym,
+				Amount:  debitAmt,
+			},
+			Credit: Sale{
+				Account: creditSym,
+				Amount:  creditAmt,
+			},
+			Date: txndate,
 		})
 	}
 
 	return
 }
 
-func (db *localDB) AggregateRecords() (res []Record, err error) {
-	stmt, err := db.db.Prepare("SELECT SYMBOL,SUM(AMOUNT),SUM(PRICE) FROM TRANSACTIONS GROUP BY SYMBOL")
-	if err != nil {
-		return
-	}
-	rows, err := stmt.Query()
+func (db *localDB) AggregateRecords() (res []Sale, err error) {
+	stmt, err := db.db.Prepare("SELECT DISTINCT(DEBIT_SYM) FROM TRANSACTIONS UNION SELECT DISTINCT(CREDIT_SYM) FROM TRANSACTIONS")
 	if err != nil {
 		return
 	}
 
+	rows, err := stmt.Query()
 	var (
-		sym           string
-		amount, price float64
+		sym Unit
+		amt float64
 	)
 
-	res = make([]Record, 0)
+	units := make([]Unit, 0)
 
 	for rows.Next() {
-		err = rows.Scan(&sym, &amount, &price)
+		rows.Scan(&sym)
+		units = append(units, sym)
+	}
+
+	if len(units) == 0 {
+		return
+	}
+
+	stmt, err = db.db.Prepare("SELECT coalesce((SELECT SUM(CREDIT_AMT) FROM TRANSACTIONS WHERE CREDIT_SYM=?),0) - " +
+		"coalesce((SELECT SUM(DEBIT_AMT) FROM TRANSACTIONS WHERE DEBIT_SYM=?),0)")
+	if err != nil {
+		return
+	}
+
+	res = make([]Sale, 0)
+
+	for _, unit := range units {
+		rows, err := stmt.Query(unit, unit)
 		if err != nil {
+			log.Error("Can't query sale", err)
 			continue
 		}
-		res = append(res, Record{
-			Symbol: sym,
-			Amount: amount,
-			Price:  price,
-		})
+		if rows.Next() {
+			err = rows.Scan(&amt)
+			if err != nil {
+				log.Error("Can't scan sale data", unit, err)
+				continue
+			}
+			res = append(res, Sale{
+				Account: unit,
+				Amount:  amt,
+			})
+		}
 	}
 
 	return
@@ -129,9 +166,10 @@ func (db *localDB) Init() (err error) {
 	_, err = db.db.Exec(`
 	CREATE TABLE TRANSACTIONS (
 		ID INTEGER PRIMARY KEY AUTOINCREMENT,
-		SYMBOL VARCHAR(10),
-		AMOUNT DECIMAL(10,6),
-		PRICE DECIMAL(10,6),
+		DEBIT_SYM VARCHAR(10),
+		DEBIT_AMT DECIMAL(10,6),
+		CREDIT_SYM VARCHAR(10),
+		CREDIT_AMT DECIMAL(10,6),
 		TXNDATE TIMESTAMP
 	)`)
 	if err != nil {

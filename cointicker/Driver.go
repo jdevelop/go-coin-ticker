@@ -2,6 +2,7 @@ package cointicker
 
 import (
 	"fmt"
+	"math"
 )
 
 type history struct {
@@ -56,18 +57,24 @@ func (d *Driver) PortfolioUpdate() {
 	price := 0.0
 
 	for _, rec := range recs {
-		sym, err := d.tickers.FetchCoins(rec.Symbol)
+		if rec.Account == "usd" {
+			price = price + rec.Amount
+			continue
+		}
+
+		sym, err := d.tickers.FetchCoins(rec.Account)
 		if err != nil {
 			continue
 		}
 		total = total + rec.Amount*sym.PriceUSD
-		gain = gain + rec.Amount*sym.PriceUSD - rec.Price
-		price = price + rec.Price
+		gain = gain + rec.Amount*sym.PriceUSD
 	}
 
+	price = math.Abs(price)
+
 	d.display.Clear()
-	d.display.Render(0, fmt.Sprintf("$%-7.2f/$%-7.2f", total, price))
-	d.display.Render(1, fmt.Sprintf("$%+-7.2f:$%-+7.1f%%", gain, gain*100/price))
+	d.display.Render(0, fmt.Sprintf("$%-5.2f/$%-5.2f", total, price))
+	d.display.Render(1, fmt.Sprintf("$%+-5.2f:%-+5.1f%%", gain-price, (gain-price)*100/price))
 }
 
 func MakeDriver(
