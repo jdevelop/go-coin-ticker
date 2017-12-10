@@ -2,6 +2,7 @@ package cointicker
 
 import (
 	"database/sql"
+	"io"
 	"os"
 	"time"
 
@@ -38,8 +39,15 @@ type localDB struct {
 	db *sql.DB
 }
 
+func closeStmt(st ...io.Closer) {
+	for _, stmt := range st {
+		stmt.Close()
+	}
+}
+
 func (db *localDB) RemoveRecord(ids ...int) (err error) {
 	stmt, err := db.db.Prepare("DELETE FROM TRANSACTIONS WHERE ID = ?")
+	defer closeStmt(stmt)
 	if err != nil {
 		return
 	}
@@ -55,24 +63,26 @@ func (db *localDB) RemoveRecord(ids ...int) (err error) {
 func (db *localDB) AddRecord(r *Record) (err error) {
 	stmt, err := db.db.Prepare("INSERT INTO TRANSACTIONS (DEBIT_SYM, DEBIT_AMT, CREDIT_SYM, CREDIT_AMT, TXNDATE) " +
 		"VALUES (?,?,?,?,?)")
+	defer closeStmt(stmt)
 	if err != nil {
 		return
 	}
-	res, err := stmt.Exec(r.Debit.Account, r.Debit.Amount, r.Credit.Account, r.Credit.Amount, r.Date)
+	_, err = stmt.Exec(r.Debit.Account, r.Debit.Amount, r.Credit.Account, r.Credit.Amount, r.Date)
 	if err != nil {
 		return
 	}
-	res.RowsAffected()
 	return
 }
 
 func (db *localDB) GetRecords() (res []Record, err error) {
 	stmt, err := db.db.Prepare("SELECT ID, DEBIT_SYM, DEBIT_AMT, CREDIT_SYM, CREDIT_AMT, TXNDATE " +
 		"FROM TRANSACTIONS ORDER BY TXNDATE DESC LIMIT 10 ")
+	defer closeStmt(stmt)
 	if err != nil {
 		return
 	}
 	rows, err := stmt.Query()
+	defer closeStmt(rows)
 	if err != nil {
 		return
 	}
@@ -113,8 +123,10 @@ func (db *localDB) AggregateRecords() (res []Sale, err error) {
 	if err != nil {
 		return
 	}
+	defer closeStmt(stmt)
 
 	rows, err := stmt.Query()
+	defer closeStmt(rows)
 	var (
 		sym Unit
 		amt float64
@@ -130,6 +142,9 @@ func (db *localDB) AggregateRecords() (res []Sale, err error) {
 	if len(units) == 0 {
 		return
 	}
+
+	stmt.Close()
+	rows.Close()
 
 	stmt, err = db.db.Prepare("SELECT coalesce((SELECT SUM(CREDIT_AMT) FROM TRANSACTIONS WHERE CREDIT_SYM=?),0) - " +
 		"coalesce((SELECT SUM(DEBIT_AMT) FROM TRANSACTIONS WHERE DEBIT_SYM=?),0)")
@@ -156,6 +171,7 @@ func (db *localDB) AggregateRecords() (res []Sale, err error) {
 				Amount:  amt,
 			})
 		}
+		rows.Close()
 	}
 
 	return
