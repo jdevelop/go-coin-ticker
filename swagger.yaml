@@ -75,8 +75,34 @@ definitions:
         items:
           type: object
           $ref: '#/definitions/Symbol'
-    xml:
-      name: Order
+  Dashboard_Symbol:
+    type: object
+    properties: 
+      symbol: 
+        type: string
+        example: "ethereum"
+      market_price: 
+        type: number
+        format: double
+        example: 520.00
+      qty: 
+        type: number
+        format: double
+        example: 1.19
+      value:
+        type: number
+        format: double
+        example: 1178.24567
+  Sale:
+    type: object
+    properties:
+      account:
+        type: string
+        example: "ethereum"
+      amount:
+        type: number
+        format: double
+        example: 1.05
   Symbol:
     type: object
     properties:
@@ -84,47 +110,25 @@ definitions:
         type: integer
         format: int64
         example: 101
-      symbol:
-        type: string
-        example: ethereum
-      amount:
-        type: number
-        format: double
-        example: 0.1
-      price:
-        type: number
-        format: double
-        example: 427.11
+      debit:
+        type: object
+        $ref: '#definitions/Sale'
+      credit:
+        type: object
+        $ref: '#definitions/Sale'
       date:
         type: string
         format: date
         example: '2017-11-29 00:00'
-      market_price:
-        type: number
-        format: double
-        example: 512
-      return:
-        type: number
-        format: double
-        example: 51.2
-      value:
-        type: number
-        format: double
-        example: 8.19
   RawSymbol:
     type: object
     properties:
-      symbol:
-        type: string
-        example: bitcoin
-      amount:
-        type: number
-        format: double
-        example: 1.79
-      price:
-        type: number
-        format: double
-        example: 9417.12
+      debit:
+        type: object
+        $ref: '#definitions/Sale'
+      credit:
+        type: object
+        $ref: '#definitions/Sale'
       date:
         type: string
         format: date
