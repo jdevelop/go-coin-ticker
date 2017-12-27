@@ -33,7 +33,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/Results'
-  /buy:
+  /transfer:
     put:
       summary: Add the new record
       parameters:
@@ -49,11 +49,26 @@ paths:
       responses:
         '200':
           description: OK
+  /remove/{id}:
+    delete:
+      summary: Removes the transaction
+      responses:
+        200:
+          description: Finished.
+          schema:
+            type: object
+            format: JSON
+            example: { "status" : "Complete" }
+    parameters: 
+      - name: id
+        in: path
+        required: true
+        type: integer
+        format: integer
 definitions:
   Results:
     type: array
     items:
-      type: object
       $ref: '#/definitions/Symbol'
   Dashboard:
     type: object
@@ -73,7 +88,6 @@ definitions:
       symbols:
         type: array
         items:
-          type: object
           $ref: '#/definitions/Symbol'
   Dashboard_Symbol:
     type: object
@@ -111,10 +125,8 @@ definitions:
         format: int64
         example: 101
       debit:
-        type: object
         $ref: '#definitions/Sale'
       credit:
-        type: object
         $ref: '#definitions/Sale'
       date:
         type: string
@@ -124,10 +136,8 @@ definitions:
     type: object
     properties:
       debit:
-        type: object
         $ref: '#definitions/Sale'
       credit:
-        type: object
         $ref: '#definitions/Sale'
       date:
         type: string

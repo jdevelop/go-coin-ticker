@@ -11,6 +11,9 @@ import (
 	"github.com/mgutz/logxi/v1"
 )
 
+const PREDEF_DEBIT = "usd"
+const PREDEF_FEE = "fee"
+
 //Unit type of the transaction
 type Unit = string
 
@@ -216,4 +219,14 @@ func MakeDB(path string) (db RecordsDAO, err error) {
 	}
 
 	return
+}
+
+//IsDebit returns true if the account the debit account used to buy a crypto?
+func IsDebit(acct string) bool {
+	return acct == PREDEF_DEBIT
+}
+
+//IsFee returns this transaction just a fee paid for the regular transfer?
+func IsFee(acct string) bool {
+	return acct == PREDEF_FEE
 }

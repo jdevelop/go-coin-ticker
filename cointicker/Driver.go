@@ -57,8 +57,12 @@ func (d *Driver) PortfolioUpdate() {
 	price := 0.0
 
 	for _, rec := range recs {
-		if rec.Account == "usd" {
+		if IsDebit(rec.Account) {
 			price = price + rec.Amount
+			continue
+		}
+
+		if IsFee(rec.Account) {
 			continue
 		}
 

@@ -2,6 +2,7 @@ package cointicker
 
 import (
 	"fmt"
+
 	lcd "github.com/jdevelop/golang-rpi-extras/lcd_hd44780"
 )
 
@@ -33,11 +34,11 @@ func (lcd *LCD) Clear() {
 	lcd.lcdRef.Cls()
 }
 
-func MakeLCDDisplay(data []int, rs int, e int) (Display, error) {
+func MakeLCDDisplay(data []int, rs int, e int) (d Display, err error) {
 	lcdRef, err := lcd.NewLCD4(data, rs, e)
 	if err == nil {
-		return &LCD{lcdRef: &lcdRef}, err
-	} else {
-		return nil, err
+		lcdRef.Init()
+		d = &LCD{lcdRef: &lcdRef}
 	}
+	return
 }

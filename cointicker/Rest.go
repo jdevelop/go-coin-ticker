@@ -6,7 +6,6 @@ import (
 	"math"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -45,8 +44,11 @@ func MakeREST(db RecordsDAO, m TickersPipeline) (r *httprouter.Router) {
 		total := 0.0
 		spent := 0.0
 		for _, rec := range res {
-			if strings.ToLower(rec.Account) == "usd" {
+			if IsDebit(rec.Account) {
 				spent = spent + rec.Amount
+				continue
+			}
+			if IsFee(rec.Account) {
 				continue
 			}
 			sym, err := m.FetchCoins(rec.Account)
@@ -119,7 +121,7 @@ func MakeREST(db RecordsDAO, m TickersPipeline) (r *httprouter.Router) {
 		w.Write([]byte("{ 'status' : 'Complete' }"))
 	})
 
-	r.PUT("/buy", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	r.PUT("/transfer", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		data, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			log.Error("Can't read request", err)

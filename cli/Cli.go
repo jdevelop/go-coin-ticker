@@ -15,34 +15,48 @@ import (
 
 func main() {
 
+	host := flag.String("path", "", "REST path")
 	addF := flag.Bool("a", false, "Add new record")
 	delF := flag.Int("d", -1, "Remove record")
 
 	flag.Parse()
 
-	db, err := cointicker.MakeDB("/home/bofh/coins.db")
+	var db cointicker.RecordsDAO
+	var err error
+
+	if strings.HasPrefix(*host, "http") {
+		db = cointicker.NewRestDAO(*host)
+	} else {
+		db, err = cointicker.MakeDB("/home/bofh/coins.db")
+	}
+
 	if err != nil {
 		return
 	}
 
 	if *addF {
-		add(db)
+		err = add(db)
 	} else if *delF != -1 {
-		delete(db, *delF)
+		err = delete(db, *delF)
 	} else {
-		list(db)
+		err = list(db)
 	}
 
-}
-
-func delete(db cointicker.RecordsDAO, id int) {
-	err := db.RemoveRecord(id)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 }
 
-func add(db cointicker.RecordsDAO) {
+func delete(db cointicker.RecordsDAO, id int) (err error) {
+	err = db.RemoveRecord(id)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return
+}
+
+func add(db cointicker.RecordsDAO) (err error) {
 	fmt.Print("Debit code: ")
 	s := bufio.NewScanner(os.Stdin)
 	s.Scan()
@@ -83,10 +97,11 @@ func add(db cointicker.RecordsDAO) {
 		log.Fatal(err)
 	}
 	fmt.Println("Record added")
+	return
 }
 
-func list(db cointicker.RecordsDAO) {
-	fmt.Println("Database content:")
+func list(db cointicker.RecordsDAO) (err error) {
+	fmt.Println("Records content:")
 	recs, err := db.GetRecords()
 	if err != nil {
 		return
@@ -95,5 +110,5 @@ func list(db cointicker.RecordsDAO) {
 	for _, rec := range recs {
 		fmt.Println(rec)
 	}
-
+	return
 }
