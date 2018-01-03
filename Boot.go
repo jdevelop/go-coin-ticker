@@ -51,11 +51,11 @@ func main() {
 	conf := Config{}
 	err = viper.Unmarshal(&conf)
 	if err != nil || len(conf.Ticker.LCD.DataPins) == 0 {
-		display = cointicker.MakeConsoleDisplay()
+		display, err = cointicker.MakeDisplay(nil, -1, -1)
 	} else {
 		fmt.Println("Starting with LCD: ", conf.Ticker.LCD.DataPins, "RS:",
 			conf.Ticker.LCD.RsPin, "E:", conf.Ticker.LCD.EPin)
-		display, err = cointicker.MakeLCDDisplay(
+		display, err = cointicker.MakeDisplay(
 			conf.Ticker.LCD.DataPins,
 			conf.Ticker.LCD.RsPin,
 			conf.Ticker.LCD.EPin,
