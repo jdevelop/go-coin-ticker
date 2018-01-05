@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/mgutz/logxi/v1"
@@ -33,6 +34,11 @@ func jsonCT(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
+func httpError(resp http.ResponseWriter, msg string, code int, err error) {
+	log.Error(msg, err)
+	http.Error(resp, msg, code)
+}
+
 //MakeREST creates the REST interface with provided backends for the data storage and market access.
 func MakeREST(db storage.RecordsDAO, m market.TickersPipeline) (r *httprouter.Router) {
 	r = httprouter.New()
@@ -55,7 +61,7 @@ func MakeREST(db storage.RecordsDAO, m market.TickersPipeline) (r *httprouter.Ro
 
 		symMap, err := m.FetchCoins(codes...)
 		if err != nil {
-			log.Error("Can't process coin", err)
+			httpError(w, "Can't process coin", 500, err)
 			return
 		}
 
@@ -95,8 +101,7 @@ func MakeREST(db storage.RecordsDAO, m market.TickersPipeline) (r *httprouter.Ro
 		})
 
 		if err != nil {
-			http.Error(w, "Unknown format", 500)
-			log.Error("Can't serialize JSON", err)
+			httpError(w, "Can't serialize JSON", 500, err)
 			return
 		}
 		jsonCT(w)
@@ -106,14 +111,12 @@ func MakeREST(db storage.RecordsDAO, m market.TickersPipeline) (r *httprouter.Ro
 	r.GET("/list", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		res, err := db.GetRecords()
 		if err != nil {
-			log.Error("Can't read data", err)
-			http.Error(w, "Can't load data from DB", 500)
+			httpError(w, "Can't load data from DB", 500, err)
 			return
 		}
 		data, err := json.Marshal(res)
 		if err != nil {
-			log.Error("Can't marshal JSON data", err)
-			http.Error(w, "No data", 500)
+			httpError(w, "No data", 500, err)
 			return
 		}
 		jsonCT(w)
@@ -124,13 +127,11 @@ func MakeREST(db storage.RecordsDAO, m market.TickersPipeline) (r *httprouter.Ro
 		idStr := p.ByName("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
-			log.Error("Can't convert ID", err)
-			http.Error(w, "Not an ID", 400)
+			httpError(w, "Not an ID", 400, err)
 			return
 		}
 		if err = db.RemoveRecord(id); err != nil {
-			log.Error("Can't remove ID", id, err)
-			http.Error(w, "Can't remove record", 500)
+			httpError(w, "Can't remove record", 500, err)
 			return
 		}
 		jsonCT(w)
@@ -140,20 +141,38 @@ func MakeREST(db storage.RecordsDAO, m market.TickersPipeline) (r *httprouter.Ro
 	r.PUT("/transfer", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		data, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Error("Can't read request", err)
-			http.Error(w, "Unable to read request", 400)
+			httpError(w, "Unable to read request", 400, err)
 			return
 		}
 		var rec storage.Record
 		if err = json.Unmarshal(data, &rec); err != nil {
 			log.Error("Wrong record", string(data))
-			log.Error("Can't unmarshal request", err)
-			http.Error(w, "Unable to unmarshal request", 400)
+			httpError(w, "Unable to unmarshal request", 400, err)
 			return
 		}
+
+		debitAct := strings.ToLower(rec.Debit.Account)
+		creditAct := strings.ToLower(rec.Credit.Account)
+
+		coins, err := m.FetchCoins(debitAct, creditAct)
+		if err != nil {
+			httpError(w, "Can't communicate with market", 400, err)
+			return
+		}
+
+		if (!storage.IsDebit(debitAct) && coins[debitAct].ID == "") ||
+			(!storage.IsDebit(creditAct) && coins[creditAct].ID == "") {
+			httpError(w, "coin not found", 400, err)
+			return
+		}
+
+		if rec.Credit.Amount <= 0 || rec.Debit.Amount <= 0 {
+			httpError(w, "amount must be positive", 400, err)
+			return
+		}
+
 		if err = db.AddRecord(&rec); err != nil {
-			log.Error("Can't save record", err)
-			http.Error(w, "Unable to save record", 400)
+			httpError(w, "Unable to save record", 400, err)
 			return
 		}
 		jsonCT(w)
