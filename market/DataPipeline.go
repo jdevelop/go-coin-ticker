@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-
-	ticker "github.com/jdevelop/go-coin-ticker/cointicker"
 )
 
 type TickersPipeline interface {
-	FetchCoins(symbol string) (*ticker.TickerData, error)
+	FetchCoins(symbol string) (*TickerData, error)
 }
 
 type coinMarket struct{}
@@ -18,22 +16,20 @@ func MakeCoinMarket() TickersPipeline {
 	return &coinMarket{}
 }
 
-func (mkt *coinMarket) FetchCoins(coinCode string) (*ticker.TickerData, error) {
+func (mkt *coinMarket) FetchCoins(coinCode string) (t *TickerData, err error) {
 	resp, err := http.Get("https://api.coinmarketcap.com/v1/ticker/" + coinCode + "/")
 	if err != nil {
-		ticker.LogError(err)
-		return nil, err
+		return
 	}
 	res, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		ticker.LogError(err)
-		return nil, err
+		return
 	}
-	var tickers []ticker.TickerData
+	var tickers []TickerData
 	err = json.Unmarshal(res, &tickers)
 	if err != nil {
-		ticker.LogError(err)
-		return nil, err
+		return
 	}
-	return &tickers[0], nil
+	t = &tickers[0]
+	return
 }
