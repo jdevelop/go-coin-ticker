@@ -1,4 +1,4 @@
-package cointicker
+package storage
 
 import (
 	"fmt"
@@ -29,7 +29,7 @@ func Test_DBAccess(t *testing.T) {
 				Account: "USD",
 				Amount:  100.0,
 			},
-			Date: time.Now().Add(1 * time.Hour),
+			Date: FormattedTime{time.Now().Add(1 * time.Hour)},
 		},
 		{
 			Credit: Sale{
@@ -40,7 +40,7 @@ func Test_DBAccess(t *testing.T) {
 				Account: "XRP",
 				Amount:  50.0,
 			},
-			Date: time.Now().Add(2 * time.Hour),
+			Date: FormattedTime{time.Now().Add(2 * time.Hour)},
 		},
 		{
 			Credit: Sale{
@@ -51,7 +51,7 @@ func Test_DBAccess(t *testing.T) {
 				Account: "USD",
 				Amount:  10000,
 			},
-			Date: time.Now().Add(3 * time.Hour),
+			Date: FormattedTime{time.Now().Add(3 * time.Hour)},
 		},
 		{
 			Credit: Sale{
@@ -62,7 +62,7 @@ func Test_DBAccess(t *testing.T) {
 				Account: "BTC",
 				Amount:  0.25,
 			},
-			Date: time.Now().Add(4 * time.Hour),
+			Date: FormattedTime{time.Now().Add(4 * time.Hour)},
 		},
 	}
 

@@ -1,4 +1,4 @@
-package cointicker
+package rest
 
 import (
 	"bytes"
@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/jdevelop/go-coin-ticker/storage"
 )
 
 type REST struct {
@@ -26,7 +28,7 @@ func errorFromResponse(resp *http.Response) (err error) {
 	return
 }
 
-func (r *REST) AddRecord(rec *Record) (err error) {
+func (r *REST) AddRecord(rec *storage.Record) (err error) {
 	jsonB, err := json.Marshal(rec)
 	if err != nil {
 		return
@@ -44,7 +46,7 @@ func (r *REST) AddRecord(rec *Record) (err error) {
 	return
 }
 
-func (r *REST) GetRecords() (rec []Record, err error) {
+func (r *REST) GetRecords() (rec []storage.Record, err error) {
 	resp, err := r.client.Get(r.baseUrl + "/list")
 	if err != nil {
 		return
@@ -81,7 +83,7 @@ func (r *REST) RemoveRecord(ids ...int) (err error) {
 	return
 }
 
-func (r *REST) AggregateRecords() (sales []Sale, err error) {
+func (r *REST) AggregateRecords() (sales []storage.Sale, err error) {
 	resp, err := r.client.Get(r.baseUrl + "/dashboard")
 	if err != nil {
 		return
@@ -98,7 +100,7 @@ func (r *REST) AggregateRecords() (sales []Sale, err error) {
 			return
 		}
 		for _, pr := range dashboard.Symbols {
-			sales = append(sales, Sale{
+			sales = append(sales, storage.Sale{
 				Account: pr.Symbol,
 				Amount:  pr.Value,
 			})

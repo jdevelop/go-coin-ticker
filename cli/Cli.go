@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jdevelop/go-coin-ticker/cointicker"
+	"github.com/jdevelop/go-coin-ticker/rest"
+	"github.com/jdevelop/go-coin-ticker/storage"
 )
 
 func main() {
@@ -21,13 +22,13 @@ func main() {
 
 	flag.Parse()
 
-	var db cointicker.RecordsDAO
+	var db storage.RecordsDAO
 	var err error
 
 	if strings.HasPrefix(*host, "http") {
-		db = cointicker.NewRestDAO(*host)
+		db = rest.NewRestDAO(*host)
 	} else {
-		db, err = cointicker.MakeDB("/home/bofh/coins.db")
+		db, err = storage.MakeDB("/home/bofh/coins.db")
 	}
 
 	if err != nil {
@@ -48,7 +49,7 @@ func main() {
 
 }
 
-func delete(db cointicker.RecordsDAO, id int) (err error) {
+func delete(db storage.RecordsDAO, id int) (err error) {
 	err = db.RemoveRecord(id)
 	if err != nil {
 		log.Fatal(err)
@@ -56,7 +57,7 @@ func delete(db cointicker.RecordsDAO, id int) (err error) {
 	return
 }
 
-func add(db cointicker.RecordsDAO) (err error) {
+func add(db storage.RecordsDAO) (err error) {
 	fmt.Print("Debit code: ")
 	s := bufio.NewScanner(os.Stdin)
 	s.Scan()
@@ -76,19 +77,19 @@ func add(db cointicker.RecordsDAO) (err error) {
 	if err != nil {
 		return
 	}
-	fmt.Print("Date (MM-DD-YYYY Hh:MM): ")
+	fmt.Print("Date (MM/DD/YYYY Hh:MM): ")
 	s.Scan()
-	t, err := time.Parse("01/02/2006 15:04", s.Text())
+	t, err := time.Parse("01-02-2006 15:04", s.Text())
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = db.AddRecord(&cointicker.Record{
-		Date: t,
-		Credit: cointicker.Sale{
+	err = db.AddRecord(&storage.Record{
+		Date: storage.FormattedTime{Time: t},
+		Credit: storage.Sale{
 			Account: strings.ToLower(creditSym),
 			Amount:  creditAmt,
 		},
-		Debit: cointicker.Sale{
+		Debit: storage.Sale{
 			Account: strings.ToLower(debitSym),
 			Amount:  debitAmt,
 		},
@@ -100,7 +101,7 @@ func add(db cointicker.RecordsDAO) (err error) {
 	return
 }
 
-func list(db cointicker.RecordsDAO) (err error) {
+func list(db storage.RecordsDAO) (err error) {
 	fmt.Println("Records content:")
 	recs, err := db.GetRecords()
 	if err != nil {

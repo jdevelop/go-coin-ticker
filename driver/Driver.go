@@ -1,8 +1,12 @@
-package cointicker
+package driver
 
 import (
 	"fmt"
 	"math"
+
+	"github.com/jdevelop/go-coin-ticker/display"
+	"github.com/jdevelop/go-coin-ticker/market"
+	"github.com/jdevelop/go-coin-ticker/storage"
 )
 
 type history struct {
@@ -11,10 +15,10 @@ type history struct {
 }
 
 type Driver struct {
-	tickers TickersPipeline
-	display Display
-	db      RecordsDAO
-	signal  map[string]PriceSignal
+	tickers market.TickersPipeline
+	display display.Display
+	db      storage.RecordsDAO
+	signal  map[string]display.PriceSignal
 
 	history map[string]history
 }
@@ -57,12 +61,12 @@ func (d *Driver) PortfolioUpdate() {
 	price := 0.0
 
 	for _, rec := range recs {
-		if IsDebit(rec.Account) {
+		if storage.IsDebit(rec.Account) {
 			price = price + rec.Amount
 			continue
 		}
 
-		if IsFee(rec.Account) {
+		if storage.IsFee(rec.Account) {
 			continue
 		}
 
@@ -82,10 +86,10 @@ func (d *Driver) PortfolioUpdate() {
 }
 
 func MakeDriver(
-	tickers TickersPipeline,
-	display Display,
-	signals map[string]PriceSignal,
-	db RecordsDAO,
+	tickers market.TickersPipeline,
+	display display.Display,
+	signals map[string]display.PriceSignal,
+	db storage.RecordsDAO,
 ) *Driver {
 	return &Driver{
 		signal:  signals,

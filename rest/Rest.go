@@ -1,22 +1,23 @@
-package cointicker
+package rest
 
 import (
 	"encoding/json"
+	"github.com/jdevelop/go-coin-ticker/market"
+	"github.com/jdevelop/go-coin-ticker/storage"
 	"io/ioutil"
 	"math"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/mgutz/logxi/v1"
 )
 
 type PricedRecord struct {
-	Symbol      Unit    `json:"symbol,omitempty"`
-	MarketPrice float64 `json:"market_price,omitempty"`
-	Qty         float64 `json:"qty,omitempty"`
-	Value       float64 `json:"value,omitempty"`
+	Symbol      storage.Unit `json:"symbol,omitempty"`
+	MarketPrice float64      `json:"market_price,omitempty"`
+	Qty         float64      `json:"qty,omitempty"`
+	Value       float64      `json:"value,omitempty"`
 }
 
 type Dashboard struct {
@@ -30,7 +31,7 @@ func jsonCT(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
-func MakeREST(db RecordsDAO, m TickersPipeline) (r *httprouter.Router) {
+func MakeREST(db storage.RecordsDAO, m market.TickersPipeline) (r *httprouter.Router) {
 	r = httprouter.New()
 
 	r.GET("/dashboard", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -44,11 +45,11 @@ func MakeREST(db RecordsDAO, m TickersPipeline) (r *httprouter.Router) {
 		total := 0.0
 		spent := 0.0
 		for _, rec := range res {
-			if IsDebit(rec.Account) {
+			if storage.IsDebit(rec.Account) {
 				spent = spent + rec.Amount
 				continue
 			}
-			if IsFee(rec.Account) {
+			if storage.IsFee(rec.Account) {
 				continue
 			}
 			sym, err := m.FetchCoins(rec.Account)
@@ -128,13 +129,13 @@ func MakeREST(db RecordsDAO, m TickersPipeline) (r *httprouter.Router) {
 			http.Error(w, "Unable to read request", 400)
 			return
 		}
-		var rec Record
+		var rec storage.Record
 		if err = json.Unmarshal(data, &rec); err != nil {
+			log.Error("Wrong record", string(data))
 			log.Error("Can't unmarshal request", err)
 			http.Error(w, "Unable to unmarshal request", 400)
 			return
 		}
-		rec.Date = time.Now()
 		if err = db.AddRecord(&rec); err != nil {
 			log.Error("Can't save record", err)
 			http.Error(w, "Unable to save record", 400)

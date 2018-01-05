@@ -1,6 +1,6 @@
 // +build linux,arm
 
-package cointicker
+package display
 
 import (
 	"github.com/davecheney/gpio"

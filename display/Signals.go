@@ -1,4 +1,4 @@
-package cointicker
+package display
 
 type PriceSignal interface {
 	PriceUp(oldPrice float64, newPrice float64)

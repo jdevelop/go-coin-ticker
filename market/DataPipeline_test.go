@@ -1,4 +1,4 @@
-package cointicker
+package market
 
 import (
 	"github.com/stretchr/testify/assert"

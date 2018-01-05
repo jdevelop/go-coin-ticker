@@ -1,7 +1,7 @@
 // +build linux
 // +build amd64 386
 
-package cointicker
+package display
 
 import (
 	"fmt"

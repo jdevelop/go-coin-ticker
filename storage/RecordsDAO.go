@@ -1,9 +1,11 @@
-package cointicker
+package storage
 
 import (
 	"database/sql"
+	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	// SQLIte 3
@@ -22,12 +24,37 @@ type Sale struct {
 	Amount  float64 `json:"amount,omitempty"`
 }
 
+type FormattedTime struct {
+	time.Time
+}
+
+const DatePattern = "01-02-2006 15:04"
+
+var nilTime = (time.Time{}).UnixNano()
+
+func (t *FormattedTime) UnmarshalJSON(b []byte) (err error) {
+	s := strings.Trim(string(b), "\"")
+	if s == "null" {
+		t.Time = time.Time{}
+		return
+	}
+	t.Time, err = time.Parse(DatePattern, s)
+	return
+}
+
+func (ct *FormattedTime) MarshalJSON() ([]byte, error) {
+	if ct.Time.UnixNano() == nilTime {
+		return []byte("null"), nil
+	}
+	return []byte(fmt.Sprintf("\"%s\"", ct.Time.Format(DatePattern))), nil
+}
+
 //Record data
 type Record struct {
-	ID     int       `json:"id,omitempty"`
-	Debit  Sale      `json:"debit,omitempty"`
-	Credit Sale      `json:"credit,omitempty"`
-	Date   time.Time `json:"date,omitempty"`
+	ID     int           `json:"id,omitempty"`
+	Debit  Sale          `json:"debit,omitempty"`
+	Credit Sale          `json:"credit,omitempty"`
+	Date   FormattedTime `json:"date,omitempty"`
 }
 
 type RecordsDAO interface {
@@ -70,7 +97,7 @@ func (db *localDB) AddRecord(r *Record) (err error) {
 	if err != nil {
 		return
 	}
-	_, err = stmt.Exec(r.Debit.Account, r.Debit.Amount, r.Credit.Account, r.Credit.Amount, r.Date)
+	_, err = stmt.Exec(r.Debit.Account, r.Debit.Amount, r.Credit.Account, r.Credit.Amount, r.Date.Time)
 	if err != nil {
 		return
 	}
@@ -114,7 +141,7 @@ func (db *localDB) GetRecords() (res []Record, err error) {
 				Account: creditSym,
 				Amount:  creditAmt,
 			},
-			Date: txndate,
+			Date: FormattedTime{txndate},
 		})
 	}
 

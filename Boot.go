@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/jdevelop/go-coin-ticker/driver"
 	"strconv"
 	"strings"
 	"time"
@@ -11,7 +12,10 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/jdevelop/go-coin-ticker/cointicker"
+	"github.com/jdevelop/go-coin-ticker/display"
+	"github.com/jdevelop/go-coin-ticker/market"
+	"github.com/jdevelop/go-coin-ticker/rest"
+	"github.com/jdevelop/go-coin-ticker/storage"
 	"github.com/spf13/viper"
 )
 
@@ -42,8 +46,9 @@ func main() {
 
 	flag.Parse()
 
-	var display cointicker.Display
-	signals := make(map[string]cointicker.PriceSignal)
+	var dsp display.Display
+
+	signals := make(map[string]display.PriceSignal)
 
 	viper.SetConfigName("config")              // name of config file (without extension)
 	viper.AddConfigPath("$HOME/.coins_ticker") // call multiple times to add many search paths
@@ -51,11 +56,11 @@ func main() {
 	conf := Config{}
 	err = viper.Unmarshal(&conf)
 	if err != nil || len(conf.Ticker.LCD.DataPins) == 0 {
-		display, err = cointicker.MakeDisplay(nil, -1, -1)
+		dsp, err = display.MakeDisplay(nil, -1, -1)
 	} else {
 		fmt.Println("Starting with LCD: ", conf.Ticker.LCD.DataPins, "RS:",
 			conf.Ticker.LCD.RsPin, "E:", conf.Ticker.LCD.EPin)
-		display, err = cointicker.MakeDisplay(
+		dsp, err = display.MakeDisplay(
 			conf.Ticker.LCD.DataPins,
 			conf.Ticker.LCD.RsPin,
 			conf.Ticker.LCD.EPin,
@@ -76,35 +81,35 @@ func main() {
 		}
 		for coins, v := range viper.GetStringMap("coin-ticker.pins") {
 			coinData := v.(map[string]interface{})
-			signals[strings.ToUpper(coins)] = cointicker.MakeLED(asInt(coinData["pin-up"]), asInt(coinData["pin-down"]))
+			signals[strings.ToUpper(coins)] = display.MakeLED(asInt(coinData["pin-up"]), asInt(coinData["pin-down"]))
 		}
 
-		display.Render(0, "  COINS  ")
-		display.Render(1, " TRACKER ")
+		dsp.Render(0, "  COINS  ")
+		dsp.Render(1, " TRACKER ")
 
 		delay := 2 * time.Second
 
 		for k, signal := range signals {
-			display.Render(0, fmt.Sprintf("Testing %1s UP", k))
+			dsp.Render(0, fmt.Sprintf("Testing %1s UP", k))
 			signal.PriceUp(0, 0)
 			time.Sleep(delay)
-			display.Render(1, fmt.Sprintf("Testing %1s DOWN", k))
+			dsp.Render(1, fmt.Sprintf("Testing %1s DOWN", k))
 			signal.PriceDown(0, 0)
 			time.Sleep(delay)
 			signal.Clear()
 		}
 
-		display.Clear()
+		dsp.Clear()
 
 	}
 
-	market := cointicker.MakeCoinMarket()
+	market := market.MakeCoinMarket()
 
-	db, err := cointicker.MakeDB(conf.Ticker.DB.Path)
+	db, err := storage.MakeDB(conf.Ticker.DB.Path)
 
-	driver := cointicker.MakeDriver(
+	drv := driver.MakeDriver(
 		market,
-		display,
+		dsp,
 		signals,
 		db,
 	)
@@ -115,7 +120,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		r := cointicker.MakeREST(db, market)
+		r := rest.MakeREST(db, market)
 		go func() {
 			addr := fmt.Sprintf("%s:%d", conf.Ticker.REST.Host, conf.Ticker.REST.Port)
 			fmt.Printf("Starting REST at %s\n", addr)
@@ -126,9 +131,9 @@ func main() {
 	var upd func()
 
 	if *portfolio {
-		upd = func() { driver.PortfolioUpdate() }
+		upd = func() { drv.PortfolioUpdate() }
 	} else {
-		upd = func() { driver.TickerUpdate(conf.Ticker.Symbols) }
+		upd = func() { drv.TickerUpdate(conf.Ticker.Symbols) }
 	}
 
 	if conf.Ticker.Interval == 0 {
