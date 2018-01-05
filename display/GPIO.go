@@ -7,6 +7,7 @@ import (
 	lcd "github.com/jdevelop/golang-rpi-extras/lcd_hd44780"
 )
 
+//LCD defines the properties to be used for LCD screen (pinout)
 type LCD struct {
 	lcdRef lcd.PiLCD
 }

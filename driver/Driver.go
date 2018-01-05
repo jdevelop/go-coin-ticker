@@ -14,6 +14,8 @@ type history struct {
 	timestamp int32
 }
 
+//Driver is the primary initialization structure that holds all the
+//settings necessary for running the price checking and display routine.
 type Driver struct {
 	tickers market.TickersPipeline
 	display display.Display
@@ -23,6 +25,7 @@ type Driver struct {
 	history map[string]history
 }
 
+//TickerUpdate method runs the fetch of the ticker data and refresh of the contents.
 func (d *Driver) TickerUpdate(tickers []string) {
 	for i, symbol := range tickers {
 		ticker, err := d.tickers.FetchCoins(symbol)
@@ -47,6 +50,7 @@ func (d *Driver) TickerUpdate(tickers []string) {
 	}
 }
 
+//PortfolioUpdate runs the portfolio value update routine.
 func (d *Driver) PortfolioUpdate() {
 
 	recs, err := d.db.AggregateRecords()
@@ -85,6 +89,7 @@ func (d *Driver) PortfolioUpdate() {
 	d.display.Render(1, fmt.Sprintf("$%+-5.2f:%-+5.1f%%", gain-price, (gain-price)*100/price))
 }
 
+//MakeDriver creates the instance of the Driver and initializes the internal fields.
 func MakeDriver(
 	tickers market.TickersPipeline,
 	display display.Display,

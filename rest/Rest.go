@@ -13,6 +13,7 @@ import (
 	"github.com/mgutz/logxi/v1"
 )
 
+//PricedRecord contains the market symbol with price and quantity.
 type PricedRecord struct {
 	Symbol      storage.Unit `json:"symbol,omitempty"`
 	MarketPrice float64      `json:"market_price,omitempty"`
@@ -20,6 +21,7 @@ type PricedRecord struct {
 	Value       float64      `json:"value,omitempty"`
 }
 
+//Dashboard holds the transaction data aggregated by coin symbol.
 type Dashboard struct {
 	TotalReturn float64        `json:"total_return"`
 	TotalSpent  float64        `json:"total_spent"`
@@ -31,6 +33,7 @@ func jsonCT(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
+//MakeREST creates the REST interface with provided backends for the data storage and market access.
 func MakeREST(db storage.RecordsDAO, m market.TickersPipeline) (r *httprouter.Router) {
 	r = httprouter.New()
 

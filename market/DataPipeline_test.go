@@ -12,6 +12,6 @@ func TestEtherFetch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Condition(t, func() bool { return ticker.LastUpdated > 1000 })
 	assert.Equal(t, ticker.Symbol, "ETH")
-	assert.Equal(t, ticker.Id, "ethereum")
+	assert.Equal(t, ticker.ID, "ethereum")
 	assert.Equal(t, ticker.Name, "Ethereum")
 }

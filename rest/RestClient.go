@@ -12,9 +12,10 @@ import (
 	"github.com/jdevelop/go-coin-ticker/storage"
 )
 
+//REST defines the REST service to start on specific URI.
 type REST struct {
 	client  *http.Client
-	baseUrl string
+	baseURL string
 }
 
 func errorFromResponse(resp *http.Response) (err error) {
@@ -28,12 +29,13 @@ func errorFromResponse(resp *http.Response) (err error) {
 	return
 }
 
+//AddRecord sends the PUT request to the REST service.
 func (r *REST) AddRecord(rec *storage.Record) (err error) {
 	jsonB, err := json.Marshal(rec)
 	if err != nil {
 		return
 	}
-	put, err := http.NewRequest("PUT", r.baseUrl+"/transfer", bytes.NewBuffer(jsonB))
+	put, err := http.NewRequest("PUT", r.baseURL+"/transfer", bytes.NewBuffer(jsonB))
 	put.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		return
@@ -46,8 +48,9 @@ func (r *REST) AddRecord(rec *storage.Record) (err error) {
 	return
 }
 
+//GetRecords requests the records from the remote REST service.
 func (r *REST) GetRecords() (rec []storage.Record, err error) {
-	resp, err := r.client.Get(r.baseUrl + "/list")
+	resp, err := r.client.Get(r.baseURL + "/list")
 	if err != nil {
 		return
 	}
@@ -65,9 +68,10 @@ func (r *REST) GetRecords() (rec []storage.Record, err error) {
 	return
 }
 
+//RemoveRecord sends DELETE method to remove the records.
 func (r *REST) RemoveRecord(ids ...int) (err error) {
 	for _, id := range ids {
-		del, errL := http.NewRequest("DELETE", fmt.Sprintf("%s/remove/%d", r.baseUrl, id), nil)
+		del, errL := http.NewRequest("DELETE", fmt.Sprintf("%s/remove/%d", r.baseURL, id), nil)
 		if errL != nil {
 			return errL
 		}
@@ -83,8 +87,9 @@ func (r *REST) RemoveRecord(ids ...int) (err error) {
 	return
 }
 
+//AggregateRecords returns the collection of sales grouped by account.
 func (r *REST) AggregateRecords() (sales []storage.Sale, err error) {
-	resp, err := r.client.Get(r.baseUrl + "/dashboard")
+	resp, err := r.client.Get(r.baseURL + "/dashboard")
 	if err != nil {
 		return
 	}
@@ -109,16 +114,18 @@ func (r *REST) AggregateRecords() (sales []storage.Sale, err error) {
 	return
 }
 
+//Init initializes the REST service as required by the backend. Does nothing by default.
 func (r *REST) Init() (err error) {
 	return
 }
 
+//NewRestDAO creates the REST interface on given URL.
 func NewRestDAO(url string) (r *REST) {
 	r = &REST{
 		client: &http.Client{
 			Timeout: 20 * time.Second,
 		},
-		baseUrl: url,
+		baseURL: url,
 	}
 	return
 }

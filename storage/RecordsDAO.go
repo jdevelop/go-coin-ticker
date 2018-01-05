@@ -13,25 +13,32 @@ import (
 	"github.com/mgutz/logxi/v1"
 )
 
-const PREDEF_DEBIT = "usd"
-const PREDEF_FEE = "fee"
+//PredefDebit the default account to use as a debit one.
+const PredefDebit = "usd"
+
+//PredefFee the default account for dropping the fees into.
+const PredefFee = "fee"
 
 //Unit type of the transaction
 type Unit = string
 
+//Sale defines the sale position movement.
 type Sale struct {
 	Account Unit    `json:"account,omitempty"`
 	Amount  float64 `json:"amount,omitempty"`
 }
 
+//FormattedTime is invented just for the sake of custom time format in JSON.
 type FormattedTime struct {
 	time.Time
 }
 
+//DatePattern the pattern for the date serialization/deserialization.
 const DatePattern = "01-02-2006 15:04"
 
 var nilTime = (time.Time{}).UnixNano()
 
+//UnmarshalJSON converts passed bytes from string into time using the default format.
 func (t *FormattedTime) UnmarshalJSON(b []byte) (err error) {
 	s := strings.Trim(string(b), "\"")
 	if s == "null" {
@@ -42,11 +49,12 @@ func (t *FormattedTime) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-func (ct *FormattedTime) MarshalJSON() ([]byte, error) {
-	if ct.Time.UnixNano() == nilTime {
+//MarshalJSON returns the serialized version of the time object, formatted according to the format.
+func (t *FormattedTime) MarshalJSON() ([]byte, error) {
+	if t.Time.UnixNano() == nilTime {
 		return []byte("null"), nil
 	}
-	return []byte(fmt.Sprintf("\"%s\"", ct.Time.Format(DatePattern))), nil
+	return []byte(fmt.Sprintf("\"%s\"", t.Time.Format(DatePattern))), nil
 }
 
 //Record data
@@ -57,6 +65,7 @@ type Record struct {
 	Date   FormattedTime `json:"date,omitempty"`
 }
 
+//RecordsDAO defines the methods to add or remove records from the underlying storage.
 type RecordsDAO interface {
 	AddRecord(r *Record) error
 	GetRecords() ([]Record, error)
@@ -224,6 +233,7 @@ func (db *localDB) Init() (err error) {
 	return
 }
 
+//MakeDB creates the database for SQLite implementation.
 func MakeDB(path string) (db RecordsDAO, err error) {
 	_, err1 := os.Stat(path)
 	init := os.IsNotExist(err1)
@@ -250,10 +260,10 @@ func MakeDB(path string) (db RecordsDAO, err error) {
 
 //IsDebit returns true if the account the debit account used to buy a crypto?
 func IsDebit(acct string) bool {
-	return acct == PREDEF_DEBIT
+	return acct == PredefDebit
 }
 
 //IsFee returns this transaction just a fee paid for the regular transfer?
 func IsFee(acct string) bool {
-	return acct == PREDEF_FEE
+	return acct == PredefFee
 }
