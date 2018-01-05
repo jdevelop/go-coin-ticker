@@ -47,6 +47,18 @@ func MakeREST(db storage.RecordsDAO, m market.TickersPipeline) (r *httprouter.Ro
 		recs := make([]PricedRecord, 0)
 		total := 0.0
 		spent := 0.0
+
+		codes := make([]string, 0)
+		for _, r := range res {
+			codes = append(codes, r.Account)
+		}
+
+		symMap, err := m.FetchCoins(codes...)
+		if err != nil {
+			log.Error("Can't process coin", err)
+			return
+		}
+
 		for _, rec := range res {
 			if storage.IsDebit(rec.Account) {
 				spent = spent + rec.Amount
@@ -55,9 +67,9 @@ func MakeREST(db storage.RecordsDAO, m market.TickersPipeline) (r *httprouter.Ro
 			if storage.IsFee(rec.Account) {
 				continue
 			}
-			sym, err := m.FetchCoins(rec.Account)
-			if err != nil {
-				log.Error("Can't process coin", err)
+			sym, ok := symMap[rec.Account]
+			if !ok {
+				log.Error("Can't read market price for ", sym)
 				continue
 			}
 			total = total + sym.PriceUSD*rec.Amount

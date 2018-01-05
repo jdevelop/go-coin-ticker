@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 //TickerData holds the JSON-compatible object of the current coin data from coinmarketcap.com
@@ -26,7 +27,7 @@ type TickerData struct {
 
 //TickersPipeline defines the methods to fetch the coin stats data.
 type TickersPipeline interface {
-	FetchCoins(symbol string) (*TickerData, error)
+	FetchCoins(symbol ...string) (map[string]TickerData, error)
 }
 
 type coinMarket struct{}
@@ -36,8 +37,8 @@ func MakeCoinMarket() TickersPipeline {
 	return &coinMarket{}
 }
 
-func (mkt *coinMarket) FetchCoins(coinCode string) (t *TickerData, err error) {
-	resp, err := http.Get("https://api.coinmarketcap.com/v1/ticker/" + coinCode + "/")
+func (mkt *coinMarket) FetchCoins(coinCode ...string) (t map[string]TickerData, err error) {
+	resp, err := http.Get("https://api.coinmarketcap.com/v1/ticker/")
 	if err != nil {
 		return
 	}
@@ -50,6 +51,15 @@ func (mkt *coinMarket) FetchCoins(coinCode string) (t *TickerData, err error) {
 	if err != nil {
 		return
 	}
-	t = &tickers[0]
+	t = make(map[string]TickerData)
+	for _, c := range coinCode {
+		t[strings.ToLower(c)] = TickerData{}
+	}
+	for _, tck := range tickers {
+		n := strings.ToLower(tck.Symbol)
+		if _, ok := t[n]; ok {
+			t[n] = tck
+		}
+	}
 	return
 }

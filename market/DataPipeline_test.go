@@ -1,13 +1,16 @@
 package market
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestEtherFetch(t *testing.T) {
 	cm := MakeCoinMarket()
-	ticker, err := cm.FetchCoins("ethereum")
+	tickerMap, err := cm.FetchCoins("eth")
+	fmt.Println(tickerMap)
+	ticker := tickerMap["eth"]
 	assert.NotNil(t, ticker)
 	assert.Nil(t, err)
 	assert.Condition(t, func() bool { return ticker.LastUpdated > 1000 })

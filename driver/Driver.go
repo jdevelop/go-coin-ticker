@@ -27,12 +27,12 @@ type Driver struct {
 
 //TickerUpdate method runs the fetch of the ticker data and refresh of the contents.
 func (d *Driver) TickerUpdate(tickers []string) {
-	for i, symbol := range tickers {
-		ticker, err := d.tickers.FetchCoins(symbol)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
+	ts, err := d.tickers.FetchCoins(tickers...)
+	if err != nil {
+		return
+	}
+	i := 0
+	for _, ticker := range ts {
 		last, historyExists := d.history[ticker.Symbol]
 		d.history[ticker.Symbol] = history{price: ticker.PriceUSD, timestamp: ticker.LastUpdated}
 		if last.price != ticker.PriceUSD && last.timestamp < ticker.LastUpdated {
@@ -47,6 +47,7 @@ func (d *Driver) TickerUpdate(tickers []string) {
 				}
 			}
 		}
+		i = i + 1
 	}
 }
 
@@ -64,7 +65,21 @@ func (d *Driver) PortfolioUpdate() {
 	gain := 0.0
 	price := 0.0
 
+	symbols := make([]string, 0)
 	for _, rec := range recs {
+		symbols = append(symbols, rec.Account)
+	}
+
+	symMap, err := d.tickers.FetchCoins(symbols...)
+	if err != nil {
+		fmt.Println("Can't fetch coin data", err)
+		return
+	}
+
+	for _, rec := range recs {
+
+		sym, ok := symMap[rec.Account]
+
 		if storage.IsDebit(rec.Account) {
 			price = price + rec.Amount
 			continue
@@ -74,10 +89,10 @@ func (d *Driver) PortfolioUpdate() {
 			continue
 		}
 
-		sym, err := d.tickers.FetchCoins(rec.Account)
-		if err != nil {
+		if !ok {
 			continue
 		}
+
 		total = total + rec.Amount*sym.PriceUSD
 		gain = gain + rec.Amount*sym.PriceUSD
 	}

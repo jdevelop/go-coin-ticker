@@ -77,9 +77,14 @@ func add(db storage.RecordsDAO) (err error) {
 	if err != nil {
 		return
 	}
-	fmt.Print("Date (MM/DD/YYYY Hh:MM): ")
+	fmt.Print("Date (MM-DD-YYYY HH:MM): ")
 	s.Scan()
-	t, err := time.Parse("01-02-2006 15:04", s.Text())
+	var t time.Time
+	if s.Text() == "" {
+		t = time.Now()
+	} else {
+		t, err = time.Parse("01-02-2006 15:04", s.Text())
+	}
 	if err != nil {
 		log.Fatal(err)
 	}

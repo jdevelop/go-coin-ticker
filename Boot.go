@@ -131,8 +131,10 @@ func main() {
 	var upd func()
 
 	if *portfolio {
+		fmt.Println("Portfolio")
 		upd = func() { drv.PortfolioUpdate() }
 	} else {
+		fmt.Println("Ticker")
 		upd = func() { drv.TickerUpdate(conf.Ticker.Symbols) }
 	}
 
