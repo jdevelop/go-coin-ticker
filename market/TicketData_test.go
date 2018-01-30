@@ -1,4 +1,4 @@
-package cointicker
+package market
 
 import (
 	"encoding/json"
@@ -23,7 +23,7 @@ var dataCoin = `{ "id": "ethereum",
 }`
 
 var testTicker = TickerData{
-	Id:               "ethereum",
+	ID:               "ethereum",
 	Name:             "Ethereum",
 	Symbol:           "ETH",
 	Rank:             2,

@@ -1,25 +1,34 @@
-package cointicker
+// +build linux,arm
+
+package display
 
 import (
-	"fmt"
 	"github.com/davecheney/gpio"
+	lcd "github.com/jdevelop/golang-rpi-extras/lcd_hd44780"
 )
 
-type PriceSignal interface {
-	PriceUp(oldPrice float64, newPrice float64)
-	PriceDown(oldPrice float64, newPrice float64)
-	Clear()
+//LCD defines the properties to be used for LCD screen (pinout)
+type LCD struct {
+	lcdRef lcd.PiLCD
 }
 
-func (c *console) priceUp(oldPrice float64, newPrice float64) {
-	fmt.Printf("⇈ %1.4f => %2.4f\n", oldPrice, newPrice)
+func (lcd *LCD) Render(line int, text string) {
+	lcd.lcdRef.SetCursor(uint8(line), 0)
+	lcd.lcdRef.Print(text)
 }
 
-func (c *console) priceDown(oldPrice float64, newPrice float64) {
-	fmt.Printf("⇊ %1.4f => %2.4f\n", oldPrice, newPrice)
+func (lcd *LCD) Clear() {
+	lcd.lcdRef.Cls()
 }
 
-func (c *console) Clear() {}
+func MakeDisplay(data []int, rs int, e int) (d Display, err error) {
+	lcdRef, err := lcd.NewLCD4(data, rs, e)
+	if err == nil {
+		lcdRef.Init()
+		d = &LCD{lcdRef: &lcdRef}
+	}
+	return
+}
 
 type LED struct {
 	pinUp   gpio.Pin
